@@ -1,5 +1,6 @@
 <?php
 namespace MyApp;
+use MyApp\Command\NameCommand;
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
 
@@ -16,11 +17,16 @@ class Chat implements MessageComponentInterface
      * @var array
      */
     private $messages;
+    /**
+     * @var array
+     */
+    private $availableCommands;
 
     public function __construct()
     {
         $this->clients = new \SplObjectStorage();
         $this->messages = [];
+        $this->registerCommands();
     }
 
     public function onOpen(ConnectionInterface $conn)
@@ -75,24 +81,16 @@ echo $encodedChatMessage . PHP_EOL;
      */
     private function processCommand(ConnectionInterface $from, $message)
     {
-        echo "Processing command '{$message}'".PHP_EOL;
+        echo "Processing command message: '{$message}'".PHP_EOL;
         $pieces = explode(' ', $message);
-        echo print_r($pieces, true) . PHP_EOL;
-        $command = strtolower(trim($pieces[0]));
-        switch ($command) {
-            case '/name':
-                unset($pieces[0]);
-                $name = implode(' ', $pieces);
-                echo "Name set to '{$name}' for connection {$from->resourceId}" . PHP_EOL;
-                $from->username = $name;
-                $encodedChatMessage = $this->createEncodedSystemChatMessage("Connection {$from->resourceId} is now known as '{$from->username}'");
-                $this->distributeEncodedChatMessage($from, $encodedChatMessage, false);
-                $this->clients->offsetSet($from);
-                break;
-            default:
-                $encodedChatMessage = $this->createEncodedChatMessage("'{$message}' is not a valid command");
-                $from->send($encodedChatMessage);
-                break;
+        $command = explode('/', $pieces[0])[1];
+        unset($pieces[0]);
+        $commandParameter = implode(' ', $pieces);
+        if (isset($this->availableCommands[$command])) {
+            $this->availableCommands[$command]->execute($from, $commandParameter);
+        } else {
+            $encodedChatMessage = $this->createEncodedChatMessage($from, "'{$message}' is not a valid command");
+            $from->send($encodedChatMessage);
         }
     }
 
@@ -101,7 +99,7 @@ echo $encodedChatMessage . PHP_EOL;
      * @param $message
      * @return false|string
      */
-    protected function createEncodedChatMessage(ConnectionInterface $from, $message)
+    public function createEncodedChatMessage(ConnectionInterface $from, $message)
     {
         $clientUserName = $this->getClientUserName($from);
         $chatMessage = new ChatMessage();
@@ -115,7 +113,7 @@ echo $encodedChatMessage . PHP_EOL;
      * @param $message
      * @return false|string
      */
-    protected function createEncodedSystemChatMessage($message)
+    public function createEncodedSystemChatMessage($message)
     {
         $chatMessage = new ChatMessage();
         $chatMessage->setIsSystemMessage(true);
@@ -127,30 +125,10 @@ echo $encodedChatMessage . PHP_EOL;
 
     /**
      * @param ConnectionInterface $from
-     * @return string
-     */
-    protected function getClientUserName(ConnectionInterface $from)
-    {
-        $clientUserName = '';
-        foreach ($this->clients as $client) {
-echo $client->resourceId . PHP_EOL;
-            if ($from == $client) {
-echo "Found match!" . PHP_EOL;
-//                echo __METHOD__ . print_r($client, true) . PHP_EOL;
-                $clientUserName = $client->username;
-echo "Match's username: {$clientUserName}" . PHP_EOL;
-            }
-        }
-//        $client = $this->clients->offsetGet($from);
-        return $clientUserName;
-    }
-
-    /**
-     * @param ConnectionInterface $from
      * @param string $encodedChatMessage
      * @param bool $skipSender
      */
-    protected function distributeEncodedChatMessage(
+    public function distributeEncodedChatMessage(
         ConnectionInterface $from,
         string $encodedChatMessage,
         bool $skipSender = true
@@ -164,5 +142,48 @@ echo "Match's username: {$clientUserName}" . PHP_EOL;
                 $client->send($encodedChatMessage);
             }
         }
+    }
+
+
+    /**
+     * @param ConnectionInterface $from
+     * @return string
+     */
+    protected function getClientUserName(ConnectionInterface $from)
+    {
+        $clientUserName = '';
+        foreach ($this->clients as $client) {
+            echo $client->resourceId . PHP_EOL;
+            if ($from == $client) {
+                echo "Found match!" . PHP_EOL;
+                //                echo __METHOD__ . print_r($client, true) . PHP_EOL;
+                $clientUserName = $client->username;
+                echo "Match's username: {$clientUserName}" . PHP_EOL;
+            }
+        }
+        //        $client = $this->clients->offsetGet($from);
+        return $clientUserName;
+    }
+
+    protected function registerCommands()
+    {
+        // @todo Iterate through the classes in Command dir and register each class that implements CommandInterface.
+        $this->availableCommands[NameCommand::getCommandName()] = new NameCommand($this);
+    }
+
+    /**
+     * @return \SplObjectStorage
+     */
+    public function getClients(): \SplObjectStorage
+    {
+        return $this->clients;
+    }
+
+    /**
+     * @param \SplObjectStorage $clients
+     */
+    public function setClients(\SplObjectStorage $clients): void
+    {
+        $this->clients = $clients;
     }
 }
