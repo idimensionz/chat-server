@@ -18,12 +18,22 @@ class ChatMessage implements \JsonSerializable
      * @var string
      */
     private $messageType;
+    /**
+     * @var bool
+     */
+    private $isSystemMessage;
+    /**
+     * @var string
+     */
+    private $userName;
 
     public function __construct(?string $messageType = null)
     {
         $this->setSentDate(new \DateTime());
         $messageType = $messageType ?? self::MESSAGE_TYPE_TEXT;
         $this->setMessageType($messageType);
+        $this->setIsSystemMessage(false);
+
     }
 
     /**
@@ -75,6 +85,38 @@ class ChatMessage implements \JsonSerializable
     }
 
     /**
+     * @return bool
+     */
+    private function isSystemMessage(): bool
+    {
+        return $this->isSystemMessage;
+    }
+
+    /**
+     * @param bool $isSystemMessage
+     */
+    public function setIsSystemMessage(bool $isSystemMessage): void
+    {
+        $this->isSystemMessage = $isSystemMessage;
+    }
+
+    /**
+     * @return string
+     */
+    private function getUserName(): string
+    {
+        return $this->userName;
+    }
+
+    /**
+     * @param string $userName
+     */
+    public function setUserName(string $userName): void
+    {
+        $this->userName = $userName;
+    }
+
+    /**
      * Specify data which should be serialized to JSON
      * @link https://php.net/manual/en/jsonserializable.jsonserialize.php
      * @return mixed data which can be serialized by <b>json_encode</b>,
@@ -95,7 +137,9 @@ class ChatMessage implements \JsonSerializable
         return [
             'messageType' => $this->getMessageType(),
             'message' => $message,
-            'sentDate' => $this->getSentDate()->format('Y-m-d h:i:s a')
+            'sentDate' => $this->getSentDate()->format('Y-m-d h:i:s a'),
+            'isSystemMessage' => $this->isSystemMessage,
+            'userName' => $this->getUserName(),
         ];
     }
 }
