@@ -1,8 +1,8 @@
 <?php
 
-namespace MyApp\Command;
+namespace iDimensionz\ChatServer\Command;
 
-use MyApp\Chat;
+use iDimensionz\ChatServer\WebSocketChatServer;
 use Ratchet\ConnectionInterface;
 
 class NameCommand extends AbstractCommand
@@ -11,9 +11,9 @@ class NameCommand extends AbstractCommand
 
     /**
      * NameCommand constructor.
-     * @param Chat $chatServer
+     * @param WebSocketChatServer $chatServer
      */
-    public function __construct(Chat $chatServer)
+    public function __construct(WebSocketChatServer $chatServer)
     {
         parent::__construct($chatServer);
         $this->setDescription('Identifies your messages by your name. Your name will be displayed to other users in each message you send.');

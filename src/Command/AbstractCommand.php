@@ -1,15 +1,15 @@
 <?php
 
-namespace MyApp\Command;
+namespace iDimensionz\ChatServer\Command;
 
-use MyApp\Chat;
+use iDimensionz\ChatServer\WebSocketChatServer;
 
 abstract class AbstractCommand implements CommandInterface
 {
     static $commandName = 'abstract';
 
     /**
-     * @var Chat
+     * @var WebSocketChatServer
      */
     private $chatServer;
     /**
@@ -24,7 +24,7 @@ abstract class AbstractCommand implements CommandInterface
     /**
      * @inheritDoc
      */
-    public function __construct(Chat $chatServer)
+    public function __construct(WebSocketChatServer $chatServer)
     {
         $this->setChatServer($chatServer);
     }
@@ -38,17 +38,17 @@ abstract class AbstractCommand implements CommandInterface
     }
 
     /**
-     * @return Chat
+     * @return WebSocketChatServer
      */
-    protected function getChatServer(): Chat
+    protected function getChatServer(): WebSocketChatServer
     {
         return $this->chatServer;
     }
 
     /**
-     * @param Chat $chatServer
+     * @param WebSocketChatServer $chatServer
      */
-    public function setChatServer(Chat $chatServer): void
+    public function setChatServer(WebSocketChatServer $chatServer): void
     {
         $this->chatServer = $chatServer;
     }

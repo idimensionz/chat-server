@@ -1,11 +1,12 @@
 <?php
-namespace MyApp;
-use MyApp\Command\DebugCommand;
-use MyApp\Command\NameCommand;
+namespace iDimensionz\ChatServer;
+
+use iDimensionz\ChatServer\Command\DebugCommand;
+use iDimensionz\ChatServer\Command\NameCommand;
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
 
-class Chat implements MessageComponentInterface
+class WebSocketChatServer implements MessageComponentInterface
 {
     const COMMAND_PREFIX = '/';
     const USER_NAME_SYSTEM = 'Chat Server';

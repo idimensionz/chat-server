@@ -1,6 +1,6 @@
 <?php
 
-namespace MyApp;
+namespace iDimensionz\ChatServer;
 
 class ChatMessage implements \JsonSerializable
 {

@@ -1,8 +1,8 @@
 <?php
 
-namespace MyApp\Command;
+namespace iDimensionz\ChatServer\Command;
 
-use MyApp\Chat;
+use iDimensionz\ChatServer\WebSocketChatServer;
 use Ratchet\ConnectionInterface;
 
 class DebugCommand extends AbstractCommand
@@ -13,9 +13,9 @@ class DebugCommand extends AbstractCommand
 
     /**
      * NameCommand constructor.
-     * @param Chat $chatServer
+     * @param WebSocketChatServer $chatServer
      */
-    public function __construct(Chat $chatServer)
+    public function __construct(WebSocketChatServer $chatServer)
     {
         parent::__construct($chatServer);
         $this->setDescription('Dumps messages to the chat server console. Only useful for developers.');

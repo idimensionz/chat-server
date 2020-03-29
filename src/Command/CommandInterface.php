@@ -1,17 +1,17 @@
 <?php
 
-namespace MyApp\Command;
+namespace iDimensionz\ChatServer\Command;
 
-use MyApp\Chat;
+use iDimensionz\ChatServer\WebSocketChatServer;
 use Ratchet\ConnectionInterface;
 
 interface CommandInterface
 {
     /**
      * CommandInterface constructor.
-     * @param Chat $chatServer
+     * @param WebSocketChatServer $chatServer
      */
-    public function __construct(Chat $chatServer);
+    public function __construct(WebSocketChatServer $chatServer);
 
     /**
      * Returns the command string that this class responds to.

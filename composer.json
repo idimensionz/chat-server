@@ -1,11 +1,19 @@
 {
     "autoload": {
         "psr-4": {
-            "MyApp\\": "src"
+            "iDimensionz\\ChatServer\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests"
         }
     },
     "require": {
         "cboden/ratchet": "^0.4.2",
       "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^7.5"
     }
 }
