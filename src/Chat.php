@@ -1,5 +1,6 @@
 <?php
 namespace MyApp;
+use MyApp\Command\DebugCommand;
 use MyApp\Command\NameCommand;
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
@@ -34,7 +35,10 @@ class Chat implements MessageComponentInterface
         $conn->username = "id {$conn->resourceId}";
         $this->clients->attach($conn);
 
-        echo "New connection! ({$conn->resourceId})".PHP_EOL;
+        $message = "New connection! ({$conn->username})".PHP_EOL;
+        echo $message;
+        $encodedChatMessage = $this->createEncodedSystemChatMessage($message);
+        $this->distributeEncodedChatMessage($conn, $encodedChatMessage);
         foreach ($this->messages as $message) {
             $conn->send($message);
         }
@@ -54,7 +58,6 @@ class Chat implements MessageComponentInterface
             $this->processCommand($from, $message);
         } else {
             $encodedChatMessage = $this->createEncodedChatMessage($from, $message);
-echo $encodedChatMessage . PHP_EOL;
             $this->messages[] = $encodedChatMessage;
             $this->distributeEncodedChatMessage($from, $encodedChatMessage);
         }
@@ -64,7 +67,10 @@ echo $encodedChatMessage . PHP_EOL;
     {
         $this->clients->detach($conn);
 
-        echo "Connection {$conn->resourceId} has disconnected".PHP_EOL;
+        $message = "Connection {$conn->username} has disconnected";
+        echo $message . PHP_EOL;
+        $encodedChatMessage = $this->createEncodedSystemChatMessage($message);
+        $this->distributeEncodedChatMessage($conn, $encodedChatMessage);
     }
 
     public function onError(ConnectionInterface $conn, \Exception $e)
@@ -124,9 +130,10 @@ echo $encodedChatMessage . PHP_EOL;
     }
 
     /**
+     * Sends a message to all connections.
      * @param ConnectionInterface $from
      * @param string $encodedChatMessage
-     * @param bool $skipSender
+     * @param bool $skipSender  Skips sending the message back to the sender when true.
      */
     public function distributeEncodedChatMessage(
         ConnectionInterface $from,
@@ -143,7 +150,6 @@ echo $encodedChatMessage . PHP_EOL;
             }
         }
     }
-
 
     /**
      * @param ConnectionInterface $from
@@ -165,10 +171,28 @@ echo $encodedChatMessage . PHP_EOL;
         return $clientUserName;
     }
 
+    /**
+     * Update username in messages for a particular user.
+     * @param string $previousUserName
+     * @param string $newUserName
+     */
+    public function updateUserNameInMessages(string $previousUserName, string $newUserName)
+    {
+        foreach ($this->messages as $key => $message) {
+            $chatMessage = json_decode($message);
+            if ($previousUserName == $chatMessage->userName) {
+                $chatMessage->userName = $newUserName;
+                $message = json_encode($chatMessage);
+                $this->messages[$key] = $message;
+            }
+        }
+    }
+
     protected function registerCommands()
     {
         // @todo Iterate through the classes in Command dir and register each class that implements CommandInterface.
         $this->availableCommands[NameCommand::getCommandName()] = new NameCommand($this);
+        $this->availableCommands[DebugCommand::getCommandName()] = new DebugCommand($this);
     }
 
     /**
@@ -185,5 +209,21 @@ echo $encodedChatMessage . PHP_EOL;
     public function setClients(\SplObjectStorage $clients): void
     {
         $this->clients = $clients;
+    }
+
+    /**
+     * @return array
+     */
+    public function getMessages(): array
+    {
+        return $this->messages;
+    }
+
+    /**
+     * @param array $messages
+     */
+    public function setMessages(array $messages): void
+    {
+        $this->messages = $messages;
     }
 }

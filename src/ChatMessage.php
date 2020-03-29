@@ -103,7 +103,7 @@ class ChatMessage implements \JsonSerializable
     /**
      * @return string
      */
-    private function getUserName(): string
+    public function getUserName(): string
     {
         return $this->userName;
     }

@@ -9,6 +9,10 @@ class NameCommand extends AbstractCommand
 {
     static $commandName = 'name';
 
+    /**
+     * NameCommand constructor.
+     * @param Chat $chatServer
+     */
     public function __construct(Chat $chatServer)
     {
         parent::__construct($chatServer);
@@ -21,10 +25,14 @@ class NameCommand extends AbstractCommand
      */
     public function execute(ConnectionInterface $from, string $commandParameter)
     {
+        // Change the user's username
         echo "Name set to '{$commandParameter}' for connection {$from->resourceId}" . PHP_EOL;
+        $previousName = $from->username;
         $from->username = $commandParameter;
-        $encodedChatMessage = $this->getChatServer()->createEncodedSystemChatMessage("Connection {$from->resourceId} is now known as '{$from->username}'");
+        $encodedChatMessage = $this->getChatServer()->createEncodedSystemChatMessage("Connection {$previousName} is now known as '{$from->username}'");
         $this->getChatServer()->distributeEncodedChatMessage($from, $encodedChatMessage, false);
         $this->getChatServer()->getClients()->offsetSet($from);
+        // Update all existing messages to contain new username.
+        $this->getChatServer()->updateUserNameInMessages($previousName, $commandParameter);
     }
 }

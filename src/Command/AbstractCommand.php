@@ -84,4 +84,12 @@ abstract class AbstractCommand implements CommandInterface
     {
         $this->help = $help;
     }
+
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return static::$commandName;
+    }
 }
