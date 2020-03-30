@@ -26,6 +26,10 @@ class ChatMessage implements \JsonSerializable
      * @var string
      */
     private $userName;
+    /**
+     * @var array
+     */
+    private $validMessageTypes;
 
     public function __construct(?string $messageType = null)
     {
@@ -33,13 +37,12 @@ class ChatMessage implements \JsonSerializable
         $messageType = $messageType ?? self::MESSAGE_TYPE_TEXT;
         $this->setMessageType($messageType);
         $this->setIsSystemMessage(false);
-
     }
 
     /**
      * @return mixed
      */
-    private function getMessage()
+    protected function getMessage()
     {
         return $this->message;
     }
@@ -55,7 +58,7 @@ class ChatMessage implements \JsonSerializable
     /**
      * @return \DateTime
      */
-    private function getSentDate(): \DateTime
+    protected function getSentDate(): \DateTime
     {
         return $this->sentDate;
     }
@@ -71,7 +74,7 @@ class ChatMessage implements \JsonSerializable
     /**
      * @return string
      */
-    private function getMessageType(): string
+    protected function getMessageType(): string
     {
         return $this->messageType;
     }
@@ -81,13 +84,15 @@ class ChatMessage implements \JsonSerializable
      */
     public function setMessageType($messageType): void
     {
-        $this->messageType = $messageType;
+        if ($this->isValidMessageType($messageType)) {
+            $this->messageType = $messageType;
+        }
     }
 
     /**
      * @return bool
      */
-    private function isSystemMessage(): bool
+    protected function isSystemMessage(): bool
     {
         return $this->isSystemMessage;
     }
@@ -117,6 +122,25 @@ class ChatMessage implements \JsonSerializable
     }
 
     /**
+     * @return array
+     */
+    public function getValidMessageTypes(): array
+    {
+        return [
+            self::MESSAGE_TYPE_TEXT,
+        ];
+    }
+
+    /**
+     * @param string $messageType
+     * @return bool
+     */
+    public function isValidMessageType(string $messageType)
+    {
+        return in_array($messageType, $this->getValidMessageTypes());
+    }
+
+    /**
      * Specify data which should be serialized to JSON
      * @link https://php.net/manual/en/jsonserializable.jsonserialize.php
      * @return mixed data which can be serialized by <b>json_encode</b>,
@@ -128,9 +152,6 @@ class ChatMessage implements \JsonSerializable
         switch ($this->getMessageType()) {
             case self::MESSAGE_TYPE_TEXT:
                 $message = (string) $this->getMessage();
-                break;
-            default:
-                $message = 'Unknown message type.';
                 break;
         }
 
