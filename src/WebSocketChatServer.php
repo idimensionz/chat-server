@@ -1,6 +1,7 @@
 <?php
 namespace iDimensionz\ChatServer;
 
+use iDimensionz\ChatServer\Command\CommandInterface;
 use iDimensionz\ChatServer\Command\DebugCommand;
 use iDimensionz\ChatServer\Command\NameCommand;
 use Ratchet\MessageComponentInterface;
@@ -93,8 +94,9 @@ class WebSocketChatServer implements MessageComponentInterface
         $command = explode('/', $pieces[0])[1];
         unset($pieces[0]);
         $commandParameter = implode(' ', $pieces);
-        if (isset($this->availableCommands[$command])) {
-            $this->availableCommands[$command]->execute($from, $commandParameter);
+        $availableCommands = $this->getAvailableCommands();
+        if (isset($availableCommands[$command])) {
+            $availableCommands[$command]->execute($from, $commandParameter);
         } else {
             $encodedChatMessage = $this->createEncodedChatMessage($from, "'{$message}' is not a valid command");
             $from->send($encodedChatMessage);
@@ -144,7 +146,7 @@ class WebSocketChatServer implements MessageComponentInterface
         /**
          * @var ConnectionInterface $client
          */
-        foreach ($this->clients as $client) {
+        foreach ($this->getClients() as $client) {
             if (!$skipSender || $from !== $client) {
                 // The sender is not the receiver, send to each client connected
                 $client->send($encodedChatMessage);
@@ -159,7 +161,7 @@ class WebSocketChatServer implements MessageComponentInterface
     protected function getClientUserName(ConnectionInterface $from)
     {
         $clientUserName = '';
-        foreach ($this->clients as $client) {
+        foreach ($this->getClients() as $client) {
             echo $client->resourceId . PHP_EOL;
             if ($from == $client) {
                 echo "Found match!" . PHP_EOL;
@@ -179,7 +181,7 @@ class WebSocketChatServer implements MessageComponentInterface
      */
     public function updateUserNameInMessages(string $previousUserName, string $newUserName)
     {
-        foreach ($this->messages as $key => $message) {
+        foreach ($this->getMessages() as $key => $message) {
             $chatMessage = json_decode($message);
             if ($previousUserName == $chatMessage->userName) {
                 $chatMessage->userName = $newUserName;
@@ -192,8 +194,8 @@ class WebSocketChatServer implements MessageComponentInterface
     protected function registerCommands()
     {
         // @todo Iterate through the classes in Command dir and register each class that implements CommandInterface.
-        $this->availableCommands[NameCommand::getCommandName()] = new NameCommand($this);
-        $this->availableCommands[DebugCommand::getCommandName()] = new DebugCommand($this);
+        $this->addAvailableCommand(new NameCommand($this));
+        $this->addAvailableCommand(new DebugCommand($this));
     }
 
     /**
@@ -226,5 +228,29 @@ class WebSocketChatServer implements MessageComponentInterface
     public function setMessages(array $messages): void
     {
         $this->messages = $messages;
+    }
+
+    /**
+     * @return array
+     */
+    protected function getAvailableCommands(): array
+    {
+        return $this->availableCommands;
+    }
+
+    /**
+     * @param array $availableCommands
+     */
+    public function setAvailableCommands(array $availableCommands): void
+    {
+        $this->availableCommands = $availableCommands;
+    }
+
+    /**
+     * @param CommandInterface $availableCommand
+     */
+    protected function addAvailableCommand(CommandInterface $availableCommand)
+    {
+        $this->availableCommands[$availableCommand::getCommandName()] = $availableCommand;
     }
 }
