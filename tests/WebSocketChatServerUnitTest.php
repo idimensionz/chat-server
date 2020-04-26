@@ -322,9 +322,18 @@ class WebSocketChatServerUnitTest extends TestCase
         $this->assertMessageSentToClients($expectedMessage, true);
     }
 
+    /**
+     * @throws \Exception
+     */
     public function testOnError()
     {
-        $this->markTestIncomplete();
+        $this->hasConnection();
+        $this->webSocketChatServer->onError($this->mockConnection, new \Exception());
+        /**
+         * @var ConnectionInterface $verifierProxy
+         */
+        $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(1));
+        $verifierProxy->close();
     }
 
     public function testUpdateUserNameInMessages()

@@ -76,6 +76,9 @@ class WebSocketChatServer implements MessageComponentInterface
         }
     }
 
+    /**
+     * @param ConnectionInterface $conn
+     */
     public function onClose(ConnectionInterface $conn)
     {
         $this->clients->detach($conn);
@@ -86,6 +89,10 @@ class WebSocketChatServer implements MessageComponentInterface
         $this->distributeEncodedChatMessage($conn, $encodedChatMessage);
     }
 
+    /**
+     * @param ConnectionInterface $conn
+     * @param \Exception $e
+     */
     public function onError(ConnectionInterface $conn, \Exception $e)
     {
         $this->debug("An error has occurred: {$e->getMessage()}");
