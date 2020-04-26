@@ -10,7 +10,10 @@ use Ratchet\ConnectionInterface;
 class WebSocketChatServer implements MessageComponentInterface
 {
     const COMMAND_PREFIX = '/';
+
     const USER_NAME_SYSTEM = 'Chat Server';
+
+    const DEBUG_MODE = 'CHAT_SERVER_DEBUG';
 
     /**
      * @var \SplObjectStorage
@@ -40,8 +43,8 @@ class WebSocketChatServer implements MessageComponentInterface
         $conn->username = "id {$conn->resourceId}";
         $this->clients->attach($conn);
 
-        $message = "New connection! ({$conn->username})".PHP_EOL;
-        echo $message;
+        $message = "New connection! ({$conn->username})";
+        $this->debug($message);
         $encodedChatMessage = $this->createEncodedSystemChatMessage($message);
         $this->distributeEncodedChatMessage($conn, $encodedChatMessage);
         foreach ($this->messages as $message) {
@@ -57,8 +60,13 @@ class WebSocketChatServer implements MessageComponentInterface
     public function onMessage(ConnectionInterface $from, $message)
     {
         $recipientCount = count($this->clients) - 1;
-        echo sprintf('Connection %d sending message "%s" to %d other connection%s' . PHP_EOL
-            , $from->resourceId, $message, $recipientCount, $recipientCount == 1 ? '' : 's');
+        $this->debug(sprintf(
+            'Connection %d sending message "%s" to %d other connection%s',
+            $from->resourceId,
+            $message,
+            $recipientCount,
+            $recipientCount == 1 ? '' : 's'
+        ));
         if (self::COMMAND_PREFIX == substr($message, 0, 1)) {
             $this->processCommand($from, $message);
         } else {
@@ -73,14 +81,14 @@ class WebSocketChatServer implements MessageComponentInterface
         $this->clients->detach($conn);
 
         $message = "Connection {$conn->username} has disconnected";
-        echo $message . PHP_EOL;
+        $this->debug($message);
         $encodedChatMessage = $this->createEncodedSystemChatMessage($message);
         $this->distributeEncodedChatMessage($conn, $encodedChatMessage);
     }
 
     public function onError(ConnectionInterface $conn, \Exception $e)
     {
-        echo "An error has occurred: {$e->getMessage()}".PHP_EOL;
+        $this->debug("An error has occurred: {$e->getMessage()}");
 
         $conn->close();
     }
@@ -92,7 +100,7 @@ class WebSocketChatServer implements MessageComponentInterface
      */
     protected function processCommand(ConnectionInterface $from, $message)
     {
-        echo "Processing command message: '{$message}'".PHP_EOL;
+        $this->debug("Processing command message: '{$message}'");
         $pieces = explode(' ', $message);
         $command = explode('/', $pieces[0])[1];
         unset($pieces[0]);
@@ -158,19 +166,20 @@ class WebSocketChatServer implements MessageComponentInterface
     }
 
     /**
+     * Get the client's user name from the meta-data added to the matching connection.
      * @param ConnectionInterface $from
      * @return string
      */
     protected function getClientUserName(ConnectionInterface $from)
     {
         $clientUserName = '';
+        // Find the matching connection.
         foreach ($this->getClients() as $client) {
-            echo $client->resourceId . PHP_EOL;
+            $this->debug($client->resourceId);
             if ($from == $client) {
-                echo "Found match!" . PHP_EOL;
-                //                echo __METHOD__ . print_r($client, true) . PHP_EOL;
+                $this->debug("Found match!");
                 $clientUserName = $client->username;
-                echo "Match's username: {$clientUserName}" . PHP_EOL;
+                $this->debug("Match's username: {$clientUserName}");
             }
         }
         //        $client = $this->clients->offsetGet($from);
@@ -255,5 +264,18 @@ class WebSocketChatServer implements MessageComponentInterface
     protected function addAvailableCommand(CommandInterface $availableCommand)
     {
         $this->availableCommands[$availableCommand::getCommandName()] = $availableCommand;
+    }
+
+    /**
+     * When debug mode is enabled (i.e. environment variable is set to 1), then echo out message to console.
+     * When debug mode is disabled (environment variable not available or not set to 1, don't echo message.
+     * @param mixed $message
+     */
+    protected function debug($message)
+    {
+        $debugMode = getenv(self::DEBUG_MODE);
+        if (1 == $debugMode) {
+            echo $message . PHP_EOL;
+        }
     }
 }

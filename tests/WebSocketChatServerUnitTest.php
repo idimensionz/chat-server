@@ -32,6 +32,7 @@ class WebSocketChatServerUnitTest extends TestCase
 
     public function setUp()
     {
+        $this->disableDebugMode();
         $this->validSentDate = (new \DateTime())->format('Y-m-d h:i:s a');
         $this->mockClients = new \SplObjectStorage();
         $this->validResourceId = 123;
@@ -50,6 +51,7 @@ class WebSocketChatServerUnitTest extends TestCase
     {
         $this->assertSame('/', WebSocketChatServer::COMMAND_PREFIX);
         $this->assertSame('Chat Server', WebSocketChatServer::USER_NAME_SYSTEM);
+        $this->assertSame('CHAT_SERVER_DEBUG', WebSocketChatServer::DEBUG_MODE);
     }
 
     public function testAvailableCommandGetterAndSetter()
@@ -122,19 +124,14 @@ class WebSocketChatServerUnitTest extends TestCase
     {
         $this->hasConnection();
         $validMessage = 'This is a test message';
-        $actualValue = $this->hasEncodedChatMessage($this->mockConnection, $validMessage, true);
-        $this->assertIsString($actualValue);
-        $actualArray = json_decode($actualValue, true);
-        $this->assertTrue(isset($actualArray['messageType']));
-        $this->assertSame(ChatMessage::MESSAGE_TYPE_TEXT, $actualArray['messageType']);
-        $this->assertTrue(isset($actualArray['isSystemMessage']));
-        $this->assertTrue($actualArray['isSystemMessage']);
-        $this->assertTrue(isset($actualArray['message']));
-        $this->assertSame($validMessage, $actualArray['message']);
-        $this->assertTrue(isset($actualArray['userName']));
-        $this->assertSame(WebSocketChatServer::USER_NAME_SYSTEM, $actualArray['userName']);
-        $this->assertTrue(isset($actualArray['sentDate']));
-        $this->assertSame($this->validSentDate, $actualArray['sentDate']);
+        $actualValue = $this->webSocketChatServer->createEncodedSystemChatMessage($validMessage);
+        $this->assertChatMessage(
+            ChatMessage::MESSAGE_TYPE_TEXT,
+            true,
+            $validMessage,
+            WebSocketChatServer::USER_NAME_SYSTEM,
+            $actualValue
+        );
     }
 
     public function testDistributeEncodedChatMessageSendsMessageToAllClientsWhenSkipSenderIsFalse()
@@ -159,11 +156,25 @@ class WebSocketChatServerUnitTest extends TestCase
         $this->assertMessageSentToClients($validMessage, $skipSender);
     }
 
+    public function testDebugDoesNotEchoMessageWhenDisabled()
+    {
+        $validMessage = 'Some valid message';
+        $this->webSocketChatServer->debug($validMessage);
+        $this->expectOutputString('');
+    }
+
+    public function testDebugDoesEchoMessageWhenEnabled()
+    {
+        $this->enableDebugMode();
+        $validMessage = 'Some valid message';
+        $this->webSocketChatServer->debug($validMessage);
+        $this->expectOutputString($validMessage . PHP_EOL);
+    }
+
     public function testOnOpenDoesNotSendMessageToConnectionWhenNoMessages()
     {
         $this->hasConnection();
         $this->webSocketChatServer->onOpen($this->mockConnection);
-        $this->expectOutputString('New connection! (id 123)' . PHP_EOL);
         /**
          * @var ConnectionInterface $verifierProxy
          */
@@ -180,12 +191,45 @@ class WebSocketChatServerUnitTest extends TestCase
         ];
         $this->webSocketChatServer->setMessages($validMessages);
         $this->webSocketChatServer->onOpen($this->mockConnection);
-        $this->expectOutputString('New connection! (id 123)' . PHP_EOL);
         /**
          * @var ConnectionInterface $verifierProxy
          */
         $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(count($validMessages)));
         $verifierProxy->send(\Phake::anyParameters());
+    }
+
+    /**
+     * This is a scenario which should not happen.
+     */
+    public function testGetClientUserNameReturnsEmptyStringWhenMatchNotFound()
+    {
+        $testConnection = \Phake::mock(ConnectionTestStub::class);
+        $actualValue = $this->webSocketChatServer->getClientUserName($testConnection);
+        $this->assertEmpty($actualValue);
+    }
+
+    public function testGetClientUserNameReturnsUserNameWhenMatchFound()
+    {
+        $this->hasConnection();
+        $this->hasClients();
+        $actualValue = $this->webSocketChatServer->getClientUserName($this->mockConnection);
+        $this->assertSame($this->mockConnection->username, $actualValue);
+    }
+
+    public function testCreateEncodedChatMessage()
+    {
+        $this->hasConnection();
+        $this->hasClients();
+        $validMessage = 'This is a test message';
+        $actualValue = $this->webSocketChatServer->createEncodedChatMessage($this->mockConnection, $validMessage);
+        $this->assertChatMessage(
+            ChatMessage::MESSAGE_TYPE_TEXT,
+            false,
+            $validMessage,
+            $this->mockConnection->username,
+            $actualValue
+        );
+
     }
 
     /**
@@ -198,7 +242,6 @@ class WebSocketChatServerUnitTest extends TestCase
         $validMessage = sprintf('/%s %s', CommandTestStub::$commandName, $validName);
         $sender = $this->mockConnection;
         $this->webSocketChatServer->processCommand($sender, $validMessage);
-        $this->expectOutputString("Processing command message: '{$validMessage}'".PHP_EOL);
         $expectedMessage = '{"messageType":"text","message":"\'\/test Ima Tester\' is not a valid command","sentDate":"'. $this->validSentDate . '","isSystemMessage":false,"userName":""}';
         /**
          * @var ConnectionInterface $verifierProxy
@@ -218,7 +261,6 @@ class WebSocketChatServerUnitTest extends TestCase
         $validMessage = sprintf('/%s %s', CommandTestStub::$commandName, $validName);
         $sender = $this->mockConnection;
         $this->webSocketChatServer->processCommand($sender, $validMessage);
-        $this->expectOutputString("Processing command message: '{$validMessage}'".PHP_EOL);
         /**
          * @var ConnectionInterface $verifierProxy
          */
@@ -248,11 +290,6 @@ class WebSocketChatServerUnitTest extends TestCase
     }
 
     public function testOnError()
-    {
-        $this->markTestIncomplete();
-    }
-
-    public function testCreateEncodedChatMessage()
     {
         $this->markTestIncomplete();
     }
@@ -288,6 +325,7 @@ class WebSocketChatServerUnitTest extends TestCase
     /**
      * @param ConnectionInterface $mockConnection
      * @param string $message
+     * @param bool $isSystemEncodedChatMessage
      * @return false|string
      */
     private function hasEncodedChatMessage(ConnectionInterface $mockConnection, string $message, bool $isSystemEncodedChatMessage = false)
@@ -337,5 +375,50 @@ class WebSocketChatServerUnitTest extends TestCase
             $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(1));
             $verifierProxy->send($validMessage);
         }
+    }
+
+    protected function disableDebugMode(): void
+    {
+        $environmentString = WebSocketChatServer::DEBUG_MODE . "=0";
+        $isSuccess = putenv($environmentString);
+
+        echo !$isSuccess ? __METHOD__ . '/Failed disabling debug mode!' : '';
+    }
+
+    protected function enableDebugMode(): void
+    {
+        $environmentString = WebSocketChatServer::DEBUG_MODE . "=1";
+        $isSuccess = putenv($environmentString);
+
+        echo !$isSuccess ? __METHOD__ . '/Failed enabling debug mode!' : '';
+    }
+
+    /**
+     * @param string $expectedMessageType
+     * @param string $expectedUserName
+     * @param string $expectedMessage
+     * @param bool $expectedIsSystemMessage
+     * @param string $actualValue
+     */
+    protected function assertChatMessage(
+        string $expectedMessageType,
+        bool $expectedIsSystemMessage,
+        string $expectedMessage,
+        string $expectedUserName,
+        string $actualValue
+    ): void
+    {
+        $this->assertIsString($actualValue);
+        $actualArray = json_decode($actualValue, true);
+        $this->assertTrue(isset($actualArray['messageType']));
+        $this->assertSame($expectedMessageType, $actualArray['messageType']);
+        $this->assertTrue(isset($actualArray['isSystemMessage']));
+        $this->assertSame($expectedIsSystemMessage, $actualArray['isSystemMessage']);
+        $this->assertTrue(isset($actualArray['message']));
+        $this->assertSame($expectedMessage, $actualArray['message']);
+        $this->assertTrue(isset($actualArray['userName']));
+        $this->assertSame($expectedUserName, $actualArray['userName']);
+        $this->assertTrue(isset($actualArray['sentDate']));
+        $this->assertSame($this->validSentDate, $actualArray['sentDate']);
     }
 }

@@ -38,4 +38,21 @@ class WebSocketChatServerTestStub extends WebSocketChatServer
     {
         parent::processCommand($from, $message);
     }
+
+    /**
+     * @param ConnectionInterface $from
+     * @return string
+     */
+    public function getClientUserName(ConnectionInterface $from)
+    {
+        return parent::getClientUserName($from);
+    }
+
+    /**
+     * @param mixed $message
+     */
+    public function debug($message)
+    {
+        parent::debug($message);
+    }
 }
