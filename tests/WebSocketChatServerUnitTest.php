@@ -191,6 +191,44 @@ class WebSocketChatServerUnitTest extends TestCase
     /**
      * @throws \Exception
      */
+    public function testProcessCommandWhenCommandIsNotRegistered()
+    {
+        $this->hasConnection();
+        $validName = 'Ima Tester';
+        $validMessage = sprintf('/%s %s', CommandTestStub::$commandName, $validName);
+        $sender = $this->mockConnection;
+        $this->webSocketChatServer->processCommand($sender, $validMessage);
+        $this->expectOutputString("Processing command message: '{$validMessage}'".PHP_EOL);
+        $expectedMessage = '{"messageType":"text","message":"\'\/test Ima Tester\' is not a valid command","sentDate":"'. $this->validSentDate . '","isSystemMessage":false,"userName":""}';
+        /**
+         * @var ConnectionInterface $verifierProxy
+         */
+        $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(1));
+        $verifierProxy->send($expectedMessage);
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function testProcessCommandWhenCommandIsRegistered()
+    {
+        $this->hasConnection();
+        $this->webSocketChatServer->addAvailableCommand(new CommandTestStub($this->webSocketChatServer));
+        $validName = 'Ima Tester';
+        $validMessage = sprintf('/%s %s', CommandTestStub::$commandName, $validName);
+        $sender = $this->mockConnection;
+        $this->webSocketChatServer->processCommand($sender, $validMessage);
+        $this->expectOutputString("Processing command message: '{$validMessage}'".PHP_EOL);
+        /**
+         * @var ConnectionInterface $verifierProxy
+         */
+        $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(1));
+        $verifierProxy->send(CommandTestStub::TEST_OUTPUT);
+    }
+
+    /**
+     * @throws \Exception
+     */
     public function testOnMessageProcessesCommand()
     {
         $this->markTestSkipped();
@@ -224,17 +262,6 @@ class WebSocketChatServerUnitTest extends TestCase
         $this->markTestIncomplete();
     }
 
-    protected function assertAvailableCommands(): void
-    {
-        $actualCommands = $this->webSocketChatServer->getAvailableCommands();
-        $this->assertIsArray($actualCommands);
-        $this->assertSame(2, count($actualCommands));
-        $this->assertTrue(isset($actualCommands[NameCommand::getCommandName()]));
-        $this->assertInstanceOf(NameCommand::class, $actualCommands[NameCommand::getCommandName()]);
-        $this->assertTrue(isset($actualCommands[DebugCommand::getCommandName()]));
-        $this->assertInstanceOf(DebugCommand::class, $actualCommands[DebugCommand::getCommandName()]);
-    }
-
     /**
      * @param int $clientCount
      */
@@ -259,6 +286,36 @@ class WebSocketChatServerUnitTest extends TestCase
     }
 
     /**
+     * @param ConnectionInterface $mockConnection
+     * @param string $message
+     * @return false|string
+     */
+    private function hasEncodedChatMessage(ConnectionInterface $mockConnection, string $message, bool $isSystemEncodedChatMessage = false)
+    {
+        $userName = $isSystemEncodedChatMessage ? WebSocketChatServer::USER_NAME_SYSTEM : $mockConnection->username;
+        return json_encode(
+            [
+                'messageType' => ChatMessage::MESSAGE_TYPE_TEXT,
+                'message' => $message,
+                'sentDate' => $this->validSentDate,
+                'isSystemMessage' => $isSystemEncodedChatMessage,
+                'userName' => $userName,
+            ]
+        );
+    }
+
+    protected function assertAvailableCommands(): void
+    {
+        $actualCommands = $this->webSocketChatServer->getAvailableCommands();
+        $this->assertIsArray($actualCommands);
+        $this->assertSame(2, count($actualCommands));
+        $this->assertTrue(isset($actualCommands[NameCommand::getCommandName()]));
+        $this->assertInstanceOf(NameCommand::class, $actualCommands[NameCommand::getCommandName()]);
+        $this->assertTrue(isset($actualCommands[DebugCommand::getCommandName()]));
+        $this->assertInstanceOf(DebugCommand::class, $actualCommands[DebugCommand::getCommandName()]);
+    }
+
+    /**
      * @param string $validMessage
      * @param bool $skipSender
      */
@@ -280,24 +337,5 @@ class WebSocketChatServerUnitTest extends TestCase
             $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(1));
             $verifierProxy->send($validMessage);
         }
-    }
-
-    /**
-     * @param ConnectionInterface $mockConnection
-     * @param string $message
-     * @return false|string
-     */
-    private function hasEncodedChatMessage(ConnectionInterface $mockConnection, string $message, bool $isSystemEncodedChatMessage = false)
-    {
-        $userName = $isSystemEncodedChatMessage ? WebSocketChatServer::USER_NAME_SYSTEM : $mockConnection->username;
-        return json_encode(
-            [
-                'messageType' => ChatMessage::MESSAGE_TYPE_TEXT,
-                'message' => $message,
-                'sentDate' => $this->validSentDate,
-                'isSystemMessage' => $isSystemEncodedChatMessage,
-                'userName' => $userName,
-            ]
-        );
     }
 }

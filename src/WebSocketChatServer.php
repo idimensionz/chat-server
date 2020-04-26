@@ -90,7 +90,7 @@ class WebSocketChatServer implements MessageComponentInterface
      * @param $message
      * @throws \Exception
      */
-    private function processCommand(ConnectionInterface $from, $message)
+    protected function processCommand(ConnectionInterface $from, $message)
     {
         echo "Processing command message: '{$message}'".PHP_EOL;
         $pieces = explode(' ', $message);

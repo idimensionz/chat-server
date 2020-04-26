@@ -4,14 +4,21 @@ namespace Tests;
 
 use iDimensionz\ChatServer\Command\CommandInterface;
 use iDimensionz\ChatServer\WebSocketChatServer;
+use Ratchet\ConnectionInterface;
 
 class WebSocketChatServerTestStub extends WebSocketChatServer
 {
+    /**
+     * @param CommandInterface $availableCommand
+     */
     public function addAvailableCommand(CommandInterface $availableCommand)
     {
         parent::addAvailableCommand($availableCommand);
     }
 
+    /**
+     * @return array
+     */
     public function getAvailableCommands(): array
     {
         return parent::getAvailableCommands();
@@ -20,5 +27,15 @@ class WebSocketChatServerTestStub extends WebSocketChatServer
     public function registerCommands()
     {
         parent::registerCommands();
+    }
+
+    /**
+     * @param ConnectionInterface $from
+     * @param $message
+     * @throws \Exception
+     */
+    public function processCommand(ConnectionInterface $from, $message)
+    {
+        parent::processCommand($from, $message);
     }
 }
