@@ -31,7 +31,7 @@ class WebSocketChatServer implements MessageComponentInterface
     public function __construct()
     {
         $this->clients = new \SplObjectStorage();
-        $this->messages = [];
+        $this->setMessages([]);
         $this->registerCommands();
     }
 
@@ -47,7 +47,7 @@ class WebSocketChatServer implements MessageComponentInterface
         $this->debug($message);
         $encodedChatMessage = $this->createEncodedSystemChatMessage($message);
         $this->distributeEncodedChatMessage($conn, $encodedChatMessage);
-        foreach ($this->messages as $message) {
+        foreach ($this->getMessages() as $message) {
             $conn->send($message);
         }
     }
@@ -71,7 +71,7 @@ class WebSocketChatServer implements MessageComponentInterface
             $this->processCommand($from, $message);
         } else {
             $encodedChatMessage = $this->createEncodedChatMessage($from, $message);
-            $this->messages[] = $encodedChatMessage;
+            $this->addMessage($encodedChatMessage);
             $this->distributeEncodedChatMessage($from, $encodedChatMessage);
         }
     }
@@ -229,7 +229,7 @@ class WebSocketChatServer implements MessageComponentInterface
     /**
      * @return array
      */
-    public function getMessages(): array
+    protected function getMessages(): array
     {
         return $this->messages;
     }
@@ -237,9 +237,17 @@ class WebSocketChatServer implements MessageComponentInterface
     /**
      * @param array $messages
      */
-    public function setMessages(array $messages): void
+    protected function setMessages(array $messages): void
     {
         $this->messages = $messages;
+    }
+
+    /**
+     * @param string $message
+     */
+    protected function addMessage(string $message)
+    {
+        $this->messages[] = $message;
     }
 
     /**

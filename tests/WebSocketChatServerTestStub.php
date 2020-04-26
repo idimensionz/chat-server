@@ -55,4 +55,17 @@ class WebSocketChatServerTestStub extends WebSocketChatServer
     {
         parent::debug($message);
     }
+
+    /**
+     * @return array
+     */
+    public function getMessages(): array
+    {
+        return parent::getMessages();
+    }
+
+    public function setMessages(array $messages): void
+    {
+        parent::setMessages($messages);
+    }
 }

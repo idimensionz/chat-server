@@ -271,17 +271,39 @@ class WebSocketChatServerUnitTest extends TestCase
     /**
      * @throws \Exception
      */
-    public function testOnMessageProcessesCommand()
+    public function testOnMessageProcessesCommandWhenMessageStartsWithCommandPrefix()
     {
-        $this->markTestSkipped();
+        $this->hasConnection();
+        $this->webSocketChatServer->addAvailableCommand(new CommandTestStub($this->webSocketChatServer));
+        $validName = 'Ima Tester';
+        $validMessage = sprintf('/%s %s', CommandTestStub::$commandName, $validName);
+        $this->webSocketChatServer->onMessage($this->mockConnection, $validMessage);
+        /**
+         * @var ConnectionInterface $verifierProxy
+         */
+        $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(1));
+        $verifierProxy->send(CommandTestStub::TEST_OUTPUT);
     }
 
     /**
      * @throws \Exception
      */
-    public function testOnMessageDistributesMessage()
+    public function testOnMessageDistributesMessageWhenMessageDoesNotStartWithCommandPrefix()
     {
-        $this->markTestSkipped('Already tested distributing messages.');
+        $skipSender = true;
+        $this->hasConnection();
+        $this->hasClients();
+        $validMessage = 'some message';
+        $encodedChatMessage = $this->hasEncodedChatMessage($this->mockConnection, $validMessage);
+        $oldMessageCount = count($this->webSocketChatServer->getMessages());
+        $this->webSocketChatServer->onMessage($this->mockConnection, $validMessage);
+
+        $actualMessages = $this->webSocketChatServer->getMessages();
+        $newMessageCount = count($actualMessages);
+        $this->assertSame($oldMessageCount + 1, $newMessageCount);
+        // Get the last message added so that timestamp is an exact match.
+        $expectedMessage = $actualMessages[$newMessageCount - 1];
+        $this->assertMessageSentToClients($expectedMessage, $skipSender);
     }
 
     public function testOnClose()
