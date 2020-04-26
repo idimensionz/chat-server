@@ -6,7 +6,14 @@ use Ratchet\ConnectionInterface;
 
 class ConnectionTestStub implements ConnectionInterface
 {
+    /**
+     * @var int
+     */
     public $resourceId = 123;
+    /**
+     * @var string
+     */
+    public $username = '';
 
     public function __get($name)
     {

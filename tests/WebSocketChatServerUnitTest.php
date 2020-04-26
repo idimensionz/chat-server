@@ -17,15 +17,23 @@ class WebSocketChatServerUnitTest extends TestCase
      */
     private $webSocketChatServer;
     /**
+     * @var ConnectionInterface|\Phake_IMock
+     */
+    private $mockConnection;
+    /**
+     * @var int
+     */
+    private $validResourceId;
+    /**
      * @var \SplObjectStorage
      */
-    private $clients;
-    private $mockClient;
-    private $mockConnection;
-    private $validResourceId;
+    private $mockClients;
+    private $validSentDate;
 
     public function setUp()
     {
+        $this->validSentDate = (new \DateTime())->format('Y-m-d h:i:s a');
+        $this->mockClients = new \SplObjectStorage();
         $this->validResourceId = 123;
         parent::setUp();
         $this->webSocketChatServer = new WebSocketChatServerTestStub();
@@ -33,7 +41,7 @@ class WebSocketChatServerUnitTest extends TestCase
 
     public function tearDown()
     {
-        unset($this->clients);
+        unset($this->mockClients);
         unset($this->webSocketChatServer);
         parent::tearDown();
     }
@@ -112,8 +120,9 @@ class WebSocketChatServerUnitTest extends TestCase
 
     public function testCreateEncodedSystemChatMessage()
     {
+        $this->hasConnection();
         $validMessage = 'This is a test message';
-        $actualValue = $this->webSocketChatServer->createEncodedSystemChatMessage($validMessage);
+        $actualValue = $this->hasEncodedChatMessage($this->mockConnection, $validMessage, true);
         $this->assertIsString($actualValue);
         $actualArray = json_decode($actualValue, true);
         $this->assertTrue(isset($actualArray['messageType']));
@@ -125,36 +134,29 @@ class WebSocketChatServerUnitTest extends TestCase
         $this->assertTrue(isset($actualArray['userName']));
         $this->assertSame(WebSocketChatServer::USER_NAME_SYSTEM, $actualArray['userName']);
         $this->assertTrue(isset($actualArray['sentDate']));
+        $this->assertSame($this->validSentDate, $actualArray['sentDate']);
     }
 
     public function testDistributeEncodedChatMessageSendsMessageToAllClientsWhenSkipSenderIsFalse()
     {
+        $skipSender = false;
+        $this->hasConnection();
         $this->hasClients();
-        $validMessage = 'some json encoded message';
-        $actualClients = $this->webSocketChatServer->getClients();
-        /**
-         * @var ConnectionInterface $sender
-         */
-        $actualClients->rewind();
-        $sender = $actualClients->current();
-        $this->webSocketChatServer->distributeEncodedChatMessage($sender, $validMessage, false);
-        \Phake::verify($this->mockClient, \Phake::times($this->webSocketChatServer->getClients()->count()))
-            ->send($validMessage);
+        $sender = $this->mockConnection;
+        $validMessage = $this->hasEncodedChatMessage($sender, 'some message');
+        $this->webSocketChatServer->distributeEncodedChatMessage($sender, $validMessage, $skipSender);
+        $this->assertMessageSentToClients($validMessage, $skipSender);
     }
 
     public function testDistributeEncodedChatMessageSendsMessageToAllClientsExceptSenderWhenSkipSenderIsTrue()
     {
+        $skipSender = true;
+        $this->hasConnection();
         $this->hasClients();
-        $validMessage = 'some json encoded message';
-        $actualClients = $this->webSocketChatServer->getClients();
-        /**
-         * @var ConnectionInterface $sender
-         */
-        $actualClients->rewind();
-        $sender = $actualClients->current();
-        $this->webSocketChatServer->distributeEncodedChatMessage($sender, $validMessage);
-        \Phake::verify($this->mockClient, \Phake::times($this->webSocketChatServer->getClients()->count() -1))
-            ->send($validMessage);
+        $sender = $this->mockConnection;
+        $validMessage = $this->hasEncodedChatMessage($sender, 'some message');
+        $this->webSocketChatServer->distributeEncodedChatMessage($sender, $validMessage, $skipSender);
+        $this->assertMessageSentToClients($validMessage, $skipSender);
     }
 
     public function testOnOpenDoesNotSendMessageToConnectionWhenNoMessages()
@@ -162,7 +164,11 @@ class WebSocketChatServerUnitTest extends TestCase
         $this->hasConnection();
         $this->webSocketChatServer->onOpen($this->mockConnection);
         $this->expectOutputString('New connection! (id 123)' . PHP_EOL);
-        \Phake::verify($this->mockConnection, \Phake::times(0))->send(\Phake::anyParameters());
+        /**
+         * @var ConnectionInterface $verifierProxy
+         */
+        $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(0));
+        $verifierProxy->send(\Phake::anyParameters());
     }
 
     public function testOnOpenSendsMessagesToConnectionWhenMessagesExist()
@@ -175,7 +181,11 @@ class WebSocketChatServerUnitTest extends TestCase
         $this->webSocketChatServer->setMessages($validMessages);
         $this->webSocketChatServer->onOpen($this->mockConnection);
         $this->expectOutputString('New connection! (id 123)' . PHP_EOL);
-        \Phake::verify($this->mockConnection, \Phake::times(count($validMessages)))->send(\Phake::anyParameters());
+        /**
+         * @var ConnectionInterface $verifierProxy
+         */
+        $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(count($validMessages)));
+        $verifierProxy->send(\Phake::anyParameters());
     }
 
     /**
@@ -230,19 +240,64 @@ class WebSocketChatServerUnitTest extends TestCase
      */
     private function hasClients($clientCount=5)
     {
-        $this->mockClient = \Phake::mock(ConnectionTestStub::class);
-        $mockClients = new \SplObjectStorage();
-        for ($i=1;$i<=5;$i++) {
-            $cloneClient = $this->mockClient;
-            //$cloneClient->resourceId++;
-            //$cloneClient->id = $i;
-            $mockClients->attach($cloneClient);
+        for ($i=1;$i<=$clientCount;$i++) {
+            $mockClient = \Phake::mock(ConnectionTestStub::class);
+            $mockClient->resourceId = $this->validResourceId + $i;
+            $mockClient->username = 'User ' . $this->validResourceId;
+            $this->mockClients->attach($mockClient);
         }
-        $this->webSocketChatServer->setClients($mockClients);
+        $this->mockClients->attach($this->mockConnection);
+        $this->mockClients->rewind();
+        $this->webSocketChatServer->setClients($this->mockClients);
     }
 
     protected function hasConnection(): void
     {
         $this->mockConnection = \Phake::mock(ConnectionTestStub::class);
+        $this->mockConnection->resourceId = $this->validResourceId;
+        $this->mockConnection->username = 'User ' . $this->validResourceId;
+    }
+
+    /**
+     * @param string $validMessage
+     * @param bool $skipSender
+     */
+    protected function assertMessageSentToClients(string $validMessage, $skipSender = true): void
+    {
+        /**
+         * @var \Phake_IMock $mockClient
+         */
+        foreach ($this->mockClients as $mockClient) {
+            if (!$skipSender || $this->mockConnection != $mockClient) {
+                /**
+                 * @var ConnectionInterface $verifierProxy
+                 */
+                $verifierProxy = \Phake::verify($mockClient, \Phake::times(1));
+                $verifierProxy->send($validMessage);
+            }
+        }
+        if (!$skipSender) {
+            $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(1));
+            $verifierProxy->send($validMessage);
+        }
+    }
+
+    /**
+     * @param ConnectionInterface $mockConnection
+     * @param string $message
+     * @return false|string
+     */
+    private function hasEncodedChatMessage(ConnectionInterface $mockConnection, string $message, bool $isSystemEncodedChatMessage = false)
+    {
+        $userName = $isSystemEncodedChatMessage ? WebSocketChatServer::USER_NAME_SYSTEM : $mockConnection->username;
+        return json_encode(
+            [
+                'messageType' => ChatMessage::MESSAGE_TYPE_TEXT,
+                'message' => $message,
+                'sentDate' => $this->validSentDate,
+                'isSystemMessage' => $isSystemEncodedChatMessage,
+                'userName' => $userName,
+            ]
+        );
     }
 }
