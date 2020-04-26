@@ -32,6 +32,9 @@ class WebSocketChatServer implements MessageComponentInterface
         $this->registerCommands();
     }
 
+    /**
+     * @param ConnectionInterface $conn
+     */
     public function onOpen(ConnectionInterface $conn)
     {
         $conn->username = "id {$conn->resourceId}";
@@ -53,9 +56,9 @@ class WebSocketChatServer implements MessageComponentInterface
      */
     public function onMessage(ConnectionInterface $from, $message)
     {
-        $numRecv = count($this->clients) - 1;
-        echo sprintf('Connection %d sending message "%s" to %d other connection%s' . "\n"
-            , $from->resourceId, $message, $numRecv, $numRecv == 1 ? '' : 's');
+        $recipientCount = count($this->clients) - 1;
+        echo sprintf('Connection %d sending message "%s" to %d other connection%s' . PHP_EOL
+            , $from->resourceId, $message, $recipientCount, $recipientCount == 1 ? '' : 's');
         if (self::COMMAND_PREFIX == substr($message, 0, 1)) {
             $this->processCommand($from, $message);
         } else {

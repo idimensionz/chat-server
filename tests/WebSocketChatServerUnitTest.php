@@ -21,9 +21,12 @@ class WebSocketChatServerUnitTest extends TestCase
      */
     private $clients;
     private $mockClient;
+    private $mockConnection;
+    private $validResourceId;
 
     public function setUp()
     {
+        $this->validResourceId = 123;
         parent::setUp();
         $this->webSocketChatServer = new WebSocketChatServerTestStub();
     }
@@ -154,9 +157,41 @@ class WebSocketChatServerUnitTest extends TestCase
             ->send($validMessage);
     }
 
-    public function testOnOpen()
+    public function testOnOpenDoesNotSendMessageToConnectionWhenNoMessages()
     {
-        $this->markTestIncomplete();
+        $this->hasConnection();
+        $this->webSocketChatServer->onOpen($this->mockConnection);
+        $this->expectOutputString('New connection! (id 123)' . PHP_EOL);
+        \Phake::verify($this->mockConnection, \Phake::times(0))->send(\Phake::anyParameters());
+    }
+
+    public function testOnOpenSendsMessagesToConnectionWhenMessagesExist()
+    {
+        $this->hasConnection();
+        $validMessages = [
+            'message 1',
+            'message 2'
+        ];
+        $this->webSocketChatServer->setMessages($validMessages);
+        $this->webSocketChatServer->onOpen($this->mockConnection);
+        $this->expectOutputString('New connection! (id 123)' . PHP_EOL);
+        \Phake::verify($this->mockConnection, \Phake::times(count($validMessages)))->send(\Phake::anyParameters());
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function testOnMessageProcessesCommand()
+    {
+        $this->markTestSkipped();
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function testOnMessageDistributesMessage()
+    {
+        $this->markTestSkipped('Already tested distributing messages.');
     }
 
     public function testOnClose()
@@ -165,11 +200,6 @@ class WebSocketChatServerUnitTest extends TestCase
     }
 
     public function testOnError()
-    {
-        $this->markTestIncomplete();
-    }
-
-    public function testOnMessage()
     {
         $this->markTestIncomplete();
     }
@@ -200,13 +230,19 @@ class WebSocketChatServerUnitTest extends TestCase
      */
     private function hasClients($clientCount=5)
     {
-        $this->mockClient = \Phake::mock(ConnectionInterface::class);
+        $this->mockClient = \Phake::mock(ConnectionTestStub::class);
         $mockClients = new \SplObjectStorage();
         for ($i=1;$i<=5;$i++) {
             $cloneClient = $this->mockClient;
+            //$cloneClient->resourceId++;
             //$cloneClient->id = $i;
             $mockClients->attach($cloneClient);
         }
         $this->webSocketChatServer->setClients($mockClients);
+    }
+
+    protected function hasConnection(): void
+    {
+        $this->mockConnection = \Phake::mock(ConnectionTestStub::class);
     }
 }
