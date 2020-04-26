@@ -306,9 +306,20 @@ class WebSocketChatServerUnitTest extends TestCase
         $this->assertMessageSentToClients($expectedMessage, $skipSender);
     }
 
+    /**
+     * @throws \Exception
+     */
     public function testOnClose()
     {
-        $this->markTestIncomplete();
+        $this->hasConnection();
+        $this->hasClients();
+        $preCloseExistence = $this->mockClients->offsetExists($this->mockConnection);
+        $this->assertTrue($preCloseExistence);
+        $this->webSocketChatServer->onClose($this->mockConnection);
+        $postCloseExistence = $this->mockClients->offsetExists($this->mockConnection);
+        $this->assertFalse($postCloseExistence);
+        $expectedMessage = $this->hasEncodedChatMessage($this->mockConnection, "Connection {$this->mockConnection->username} has disconnected", true);
+        $this->assertMessageSentToClients($expectedMessage, true);
     }
 
     public function testOnError()
