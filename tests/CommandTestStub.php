@@ -31,4 +31,9 @@ class CommandTestStub extends AbstractCommand
     {
         $from->send(self::TEST_OUTPUT);
     }
+
+    public function getChatServer(): WebSocketChatServer
+    {
+        return parent::getChatServer();
+    }
 }
