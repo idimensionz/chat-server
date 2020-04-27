@@ -106,6 +106,16 @@ class WebSocketChatServerUnitTest extends TestCase
         $this->assertSame($validArray, $actualValue);
     }
 
+    public function testAddMessage()
+    {
+        $validMessage = 'Some valid message';
+        $this->webSocketChatServer->addMessage($validMessage);
+        $actualMessages = $this->webSocketChatServer->getMessages();
+        $this->assertIsArray($actualMessages);
+        $this->assertSame(1, count($actualMessages));
+        $this->assertSame($validMessage, $actualMessages[0]);
+    }
+
     public function testConstruct()
     {
         // Validate clients
@@ -294,7 +304,6 @@ class WebSocketChatServerUnitTest extends TestCase
         $this->hasConnection();
         $this->hasClients();
         $validMessage = 'some message';
-        $encodedChatMessage = $this->hasEncodedChatMessage($this->mockConnection, $validMessage);
         $oldMessageCount = count($this->webSocketChatServer->getMessages());
         $this->webSocketChatServer->onMessage($this->mockConnection, $validMessage);
 
@@ -338,7 +347,22 @@ class WebSocketChatServerUnitTest extends TestCase
 
     public function testUpdateUserNameInMessages()
     {
-        $this->markTestIncomplete();
+        $this->hasConnection();
+        $validMessage = 'Some valid message';
+        $validNewUserName = 'New User Name';
+        $encodedMessage = $this->hasEncodedChatMessage($this->mockConnection, $validMessage);
+        $this->webSocketChatServer->addMessage($encodedMessage);
+        $preUpdateMessages = $this->webSocketChatServer->getMessages();
+        $preUpdateMessage = $preUpdateMessages[0];
+        $preUpdateMessageArray = json_decode($preUpdateMessage, true);
+        $this->assertSame($this->mockConnection->username, $preUpdateMessageArray['userName']);
+
+        $this->webSocketChatServer->updateUserNameInMessages($this->mockConnection->username, $validNewUserName);
+
+        $postUpdateMessages = $this->webSocketChatServer->getMessages();
+        $postUpdateMessage = $postUpdateMessages[0];
+        $postUpdateMessageArray = json_decode($postUpdateMessage, true);
+        $this->assertSame($validNewUserName, $postUpdateMessageArray['userName']);
     }
 
     /**
@@ -384,6 +408,22 @@ class WebSocketChatServerUnitTest extends TestCase
         );
     }
 
+    protected function disableDebugMode(): void
+    {
+        $environmentString = WebSocketChatServer::DEBUG_MODE . "=0";
+        $isSuccess = putenv($environmentString);
+
+        echo !$isSuccess ? __METHOD__ . '/Failed disabling debug mode!' : '';
+    }
+
+    protected function enableDebugMode(): void
+    {
+        $environmentString = WebSocketChatServer::DEBUG_MODE . "=1";
+        $isSuccess = putenv($environmentString);
+
+        echo !$isSuccess ? __METHOD__ . '/Failed enabling debug mode!' : '';
+    }
+
     protected function assertAvailableCommands(): void
     {
         $actualCommands = $this->webSocketChatServer->getAvailableCommands();
@@ -417,22 +457,6 @@ class WebSocketChatServerUnitTest extends TestCase
             $verifierProxy = \Phake::verify($this->mockConnection, \Phake::times(1));
             $verifierProxy->send($validMessage);
         }
-    }
-
-    protected function disableDebugMode(): void
-    {
-        $environmentString = WebSocketChatServer::DEBUG_MODE . "=0";
-        $isSuccess = putenv($environmentString);
-
-        echo !$isSuccess ? __METHOD__ . '/Failed disabling debug mode!' : '';
-    }
-
-    protected function enableDebugMode(): void
-    {
-        $environmentString = WebSocketChatServer::DEBUG_MODE . "=1";
-        $isSuccess = putenv($environmentString);
-
-        echo !$isSuccess ? __METHOD__ . '/Failed enabling debug mode!' : '';
     }
 
     /**
