@@ -236,7 +236,7 @@ class WebSocketChatServer implements MessageComponentInterface
     /**
      * @return array
      */
-    protected function getMessages(): array
+    public function getMessages(): array
     {
         return $this->messages;
     }
@@ -286,7 +286,7 @@ class WebSocketChatServer implements MessageComponentInterface
      * When debug mode is disabled (environment variable not available or not set to 1, don't echo message.
      * @param mixed $message
      */
-    protected function debug($message)
+    public function debug($message)
     {
         $debugMode = getenv(self::DEBUG_MODE);
         if (1 == $debugMode) {

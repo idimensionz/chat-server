@@ -48,22 +48,6 @@ class WebSocketChatServerTestStub extends WebSocketChatServer
         return parent::getClientUserName($from);
     }
 
-    /**
-     * @param mixed $message
-     */
-    public function debug($message)
-    {
-        parent::debug($message);
-    }
-
-    /**
-     * @return array
-     */
-    public function getMessages(): array
-    {
-        return parent::getMessages();
-    }
-
     public function setMessages(array $messages): void
     {
         parent::setMessages($messages);

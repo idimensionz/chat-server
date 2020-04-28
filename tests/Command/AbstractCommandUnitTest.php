@@ -74,6 +74,7 @@ class AbstractCommandUnitTest extends TestCase
 
     public function testToString()
     {
-
+        $actualValue = (string) $this->commandTestStub;
+        $this->assertSame(CommandTestStub::$commandName, $actualValue);
     }
 }

@@ -30,8 +30,7 @@ class DebugCommand extends AbstractCommand
         switch ($commandParameter) {
             case self::DEBUG_MESSAGES:
                 // Output all of the messages to the chat server's console.
-                echo implode(PHP_EOL, $this->getChatServer()->getMessages());
-                echo PHP_EOL;
+                $this->getChatServer()->debug(implode(PHP_EOL, $this->getChatServer()->getMessages()));
                 $from->send('Debug-' . self::DEBUG_MESSAGES . ': completed successfully.');
                 break;
         }
