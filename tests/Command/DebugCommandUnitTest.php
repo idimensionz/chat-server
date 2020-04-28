@@ -16,18 +16,18 @@ class DebugCommandUnitTest extends TestCase
     /**
      * @var WebSocketChatServer
      */
-    private $chatServer;
+    private $mockChatServer;
 
     public function setUp()
     {
         parent::setUp();
-        $this->chatServer = \Phake::mock(WebSocketChatServer::class);
-        $this->debugCommand = new DebugCommand($this->chatServer);
+        $this->mockChatServer = \Phake::mock(WebSocketChatServer::class);
+        $this->debugCommand = new DebugCommand($this->mockChatServer);
     }
 
     public function tearDown()
     {
-        unset($this->chatServer);
+        unset($this->mockChatServer);
         unset($this->debugCommand);
         parent::tearDown();
     }
@@ -51,7 +51,7 @@ class DebugCommandUnitTest extends TestCase
         /**
          * @var WebSocketChatServer $verifierProxy
          */
-        $verifierProxy = \Phake::verify($this->chatServer, \Phake::times(1));
+        $verifierProxy = \Phake::verify($this->mockChatServer, \Phake::times(1));
         $verifierProxy->debug(\Phake::anyParameters());
         /**
          * @var ConnectionInterface $verifierProxy
@@ -68,7 +68,7 @@ class DebugCommandUnitTest extends TestCase
         /**
          * @var WebSocketChatServer $verifierProxy
          */
-        $verifierProxy = \Phake::verify($this->chatServer, \Phake::times(0));
+        $verifierProxy = \Phake::verify($this->mockChatServer, \Phake::times(0));
         $verifierProxy->debug(\Phake::anyParameters());
         /**
          * @var ConnectionInterface $verifierProxy

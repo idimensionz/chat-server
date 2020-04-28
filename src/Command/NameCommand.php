@@ -26,7 +26,7 @@ class NameCommand extends AbstractCommand
     public function execute(ConnectionInterface $from, string $commandParameter)
     {
         // Change the user's username
-        echo "Name set to '{$commandParameter}' for connection {$from->resourceId}" . PHP_EOL;
+        $this->getChatServer()->debug("Name set to '{$commandParameter}' for connection {$from->resourceId}");
         $previousName = $from->username;
         $from->username = $commandParameter;
         $encodedChatMessage = $this->getChatServer()->createEncodedSystemChatMessage("Connection {$previousName} is now known as '{$from->username}'");
