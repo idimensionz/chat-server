@@ -1,4 +1,8 @@
 {
+    "name": "idimensionz/chat-server",
+    "description": "Asynchronous chat server based on ReactPHP",
+    "keywords": ["chat","asynchronous","event-loop"],
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "iDimensionz\\ChatServer\\": "src"
@@ -10,8 +14,9 @@
         }
     },
     "require": {
+        "php": ">=7.1",
         "cboden/ratchet": "^0.4.2",
-      "ext-json": "*"
+        "ext-json": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "^7.5",
