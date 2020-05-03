@@ -16,6 +16,5 @@ all-tests:
 # run all unit tests and generate code coverage HTML.
 # Open the code-coverage/index.html in your web browser to view the report.
 code-coverage-report:
-#	vendor/bin/phpunit --coverage-html code-coverage
-	vendor/phpunit/phpunit/phpunit --dump-xdebug-filter build/xdebug-filter.php
-	vendor/phpunit/phpunit/phpunit --prepend build/xdebug-filter.php --coverage-html code-coverage tests
+	vendor/bin/phpunit --dump-xdebug-filter build/xdebug-filter.php
+	vendor/bin/phpunit --prepend build/xdebug-filter.php --coverage-html code-coverage tests
