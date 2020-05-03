@@ -9,19 +9,17 @@ use Ratchet\ConnectionInterface;
 
 class DebugCommandUnitTest extends TestCase
 {
+    use CommandUnitTestTrait;
+
     /**
      * @var DebugCommand
      */
     private $debugCommand;
-    /**
-     * @var WebSocketChatServer
-     */
-    private $mockChatServer;
 
     public function setUp()
     {
         parent::setUp();
-        $this->mockChatServer = \Phake::mock(WebSocketChatServer::class);
+        $this->hasMockChatServer();
         $this->debugCommand = new DebugCommand($this->mockChatServer);
     }
 
@@ -32,7 +30,7 @@ class DebugCommandUnitTest extends TestCase
         parent::tearDown();
     }
 
-    public function test__construct()
+    public function testConstruct()
     {
         $expectedDescription = 'Dumps messages to the chat server console. Only useful for developers.';
         $actualDescription = $this->debugCommand->getDescription();
