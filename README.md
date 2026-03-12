@@ -1,5 +1,7 @@
 # iDimensionz Websocket Chat Server
 
+## This repo is no longer maintained and is being archived as of March 2026.
+
 Github: https://github.com/idimensionz/chat-server
 ## Requirements
 * PHP 7.1 or higher
